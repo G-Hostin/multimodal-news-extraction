@@ -137,12 +137,17 @@ def add_images(articles):
     return articles_with_image
 
 
-def save_articles(articles):
-    """Sauvegarde les articles en JSON et en CSV, dans un fichier daté."""
+def save_articles(articles, source_name=None):
+    """Sauvegarde les articles en JSON et en CSV, dans un fichier daté.
+
+    source_name est ajouté au nom du fichier quand chaque source est extraite
+    séparément (tâches Airflow en parallèle), pour que les fichiers ne s'écrasent pas.
+    """
     config.EXTRACTED_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    json_path = config.EXTRACTED_DIR / f"articles_{timestamp}.json"
-    csv_path = config.EXTRACTED_DIR / f"articles_{timestamp}.csv"
+    file_name = f"articles_{timestamp}_{source_name}" if source_name else f"articles_{timestamp}"
+    json_path = config.EXTRACTED_DIR / f"{file_name}.json"
+    csv_path = config.EXTRACTED_DIR / f"{file_name}.csv"
 
     with open(json_path, "w", encoding="utf-8") as file:
         json.dump(articles, file, ensure_ascii=False, indent=2)

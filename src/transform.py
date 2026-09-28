@@ -57,7 +57,8 @@ def lit_donnees():
         with open(file, encoding="utf-8") as f:
             df_file = pd.DataFrame(json.load(f))
         # La date d'extraction est dans le nom du fichier : articles_20260928_110726.json
-        timestamp = file.stem.removeprefix("articles_")
+        # (ou articles_20260928_110726_newsdata.json quand l'extraction vient d'Airflow)
+        timestamp = "_".join(file.stem.split("_")[1:3])
         df_file["date_extraction"] = pd.to_datetime(timestamp, format="%Y%m%d_%H%M%S", utc=True)
         dataframes.append(df_file)
 
@@ -219,10 +220,9 @@ def exporte(df):
     return df
 
 
-def main():
-    setup_logging("transformation.log")
+def transforme():
+    """Enchaîne toutes les étapes : lecture, traitement, export."""
     logger.info("Début de la transformation")
-
     df = lit_donnees()
     df = nettoie_url(df)
     df = nettoie_textes(df)
@@ -235,9 +235,14 @@ def main():
     df = remplit_manquants(df)
     df = renomme_colonnes(df)
     df = ajoute_colonnes(df)
-    exporte(df)
-
+    df = exporte(df)
     logger.info("Fin de la transformation")
+    return df
+
+
+def main():
+    setup_logging("transformation.log")
+    transforme()
 
 
 if __name__ == "__main__":
