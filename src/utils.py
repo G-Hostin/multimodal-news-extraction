@@ -75,7 +75,7 @@ def build_article(source, url, titre, texte, image_url, date_publication,
 
 
 def clean_articles(articles):
-    """Nettoie les textes et garde seulement les articles complets (texte + image)."""
+    """Nettoie les textes et garde les articles qui ont un titre et un texte (avec ou sans image)."""
     cleaned = []
     seen_ids = set()
     nb_incomplete = 0
@@ -85,7 +85,7 @@ def clean_articles(articles):
         article["titre"] = clean_text(article["titre"])
         article["texte"] = clean_text(article["texte"])
 
-        if not article["titre"] or not article["texte"] or not article["image_url"]:
+        if not article["titre"] or not article["texte"]:
             nb_incomplete += 1
             continue
         if article["id"] in seen_ids:
@@ -95,7 +95,7 @@ def clean_articles(articles):
         seen_ids.add(article["id"])
         cleaned.append(article)
 
-    logger.info("Nettoyage : %d articles gardés, %d incomplets, %d doublons",
+    logger.info("Nettoyage : %d articles gardés, %d sans titre ou sans texte, %d doublons",
                 len(cleaned), nb_incomplete, nb_duplicates)
     return cleaned
 
@@ -123,18 +123,17 @@ def download_image(image_url, article_id):
 
 
 def add_images(articles):
-    """Télécharge l'image de chaque article et écarte ceux dont l'image ne fonctionne pas."""
-    articles_with_image = []
+    """Télécharge l'image de chaque article qui en a une. Les articles sans image sont gardés."""
+    nb_downloaded = 0
     for article in articles:
-        image_path = download_image(article["image_url"], article["id"])
-        if image_path:
-            article["image_path"] = image_path
-            articles_with_image.append(article)
+        if article["image_url"]:
+            article["image_path"] = download_image(article["image_url"], article["id"])
+        if article["image_path"]:
+            nb_downloaded += 1
 
-    nb_rejected = len(articles) - len(articles_with_image)
-    logger.info("Images : %d téléchargées, %d articles écartés (image inaccessible)",
-                len(articles_with_image), nb_rejected)
-    return articles_with_image
+    logger.info("Images : %d téléchargées, %d articles sans image exploitable",
+                nb_downloaded, len(articles) - nb_downloaded)
+    return articles
 
 
 def save_articles(articles, source_name=None):

@@ -27,7 +27,7 @@ EXTRACTORS = {
 
 
 def extract(source_name):
-    """Extrait une source, garde les articles complets avec une image valide, et les sauvegarde."""
+    """Extrait une source, nettoie les articles, télécharge leurs images et les sauvegarde."""
     articles = EXTRACTORS[source_name]()
     articles = clean_articles(articles)
     articles = add_images(articles)
@@ -63,7 +63,7 @@ def load():
 
 with DAG(
     dag_id="etl_multimodal_news",
-    description="Extraction, transformation et chargement d'articles avec texte et image",
+    description="Extraction, transformation et chargement d'articles d'actualité (texte et image)",
     start_date=pendulum.datetime(2026, 9, 1, tz="UTC"),
     schedule="@daily",
     catchup=False,

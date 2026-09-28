@@ -32,13 +32,15 @@ SOURCE_TYPES = {
 }
 FACT_CHECKING_SOURCES = ["lesdecodeurs", "20minutes_fakeoff"]
 
-REQUIRED_COLUMNS = ["url", "titre", "texte", "image_url", "image_path", "date_publication"]
+# L'image n'est pas obligatoire : les articles sans image sont gardés et signalés par a_image
+REQUIRED_COLUMNS = ["url", "titre", "texte", "date_publication"]
 
 # Ordre des colonnes dans le fichier final
 FINAL_COLUMNS = [
     "id", "url", "titre", "texte", "nb_mots_titre", "nb_mots_texte",
     "date_publication", "langue", "auteur", "label",
     "source", "nom_source", "type_source", "est_fact_checking", "domaine", "rang_fiabilite",
+    "a_image", "image_partagee",
     "image_url", "image_path", "image_largeur", "image_hauteur", "image_format",
     "date_extraction",
 ]
@@ -129,49 +131,46 @@ def verifie_champs(df):
 
 
 def valide_image(image_path):
-    """Vérifie qu'une image existe, s'ouvre et est assez grande. Renvoie (largeur, hauteur, format) ou None."""
+    """Vérifie qu'une image existe et s'ouvre. Renvoie (largeur, hauteur, format) ou None."""
+    if pd.isna(image_path):
+        return None  # article sans image
     try:
         with Image.open(config.ROOT_DIR / image_path) as img:
             img.load()  # lit l'image en entier : échoue si le fichier est corrompu
-            width, height = img.size
-            image_format = img.format
+            return img.width, img.height, img.format
     except (FileNotFoundError, UnidentifiedImageError, OSError) as error:
         logger.warning("Image invalide (%s) : %s", image_path, error)
         return None
 
-    if width < config.IMAGE_MIN_WIDTH:
-        logger.warning("Image trop petite (%d px de large) : %s", width, image_path)
-        return None
-    return width, height, image_format
-
 
 def valide_images(df):
-    """Applique valide_image() à chaque article et ajoute les dimensions et le format de l'image."""
+    """Applique valide_image() à chaque article et ajoute a_image, les dimensions et le format."""
     results = df["image_path"].apply(valide_image)
-    before = len(df)
-    df = df[results.notnull()].copy()
-    results = results[results.notnull()]
+    df["a_image"] = results.notnull()
+    # Si l'image n'est pas exploitable, on ne garde pas de chemin vers elle
+    df.loc[~df["a_image"], "image_path"] = None
 
-    df["image_largeur"] = results.str[0].astype(int)
-    df["image_hauteur"] = results.str[1].astype(int)
-    df["image_format"] = results.str[2]
-    logger.info("Images : %d articles écartés (image absente, corrompue ou trop petite)", before - len(df))
+    # Colonnes vides (NA) pour les articles sans image
+    df["image_largeur"] = results.apply(lambda r: r[0] if r else None).astype("Int64")
+    df["image_hauteur"] = results.apply(lambda r: r[1] if r else None).astype("Int64")
+    df["image_format"] = results.apply(lambda r: r[2] if r else None)
+    logger.info("Images : %d articles avec une image valide, %d sans image",
+                df["a_image"].sum(), (~df["a_image"]).sum())
     return df
 
 
 def verifie_association(df):
-    """Vérifie que chaque image correspond bien à son article et n'est pas partagée."""
+    """Vérifie que chaque image correspond à son article et signale les images partagées."""
     # L'image est nommée avec l'id de l'article à l'extraction
-    same_name = df["image_path"].apply(lambda path: Path(path).stem) == df["id"]
+    with_image = df["a_image"]
+    same_name = df.loc[with_image, "image_path"].apply(lambda path: Path(path).stem) == df.loc[with_image, "id"]
     logger.info("Association : %d images dont le nom ne correspond pas à l'id", (~same_name).sum())
-    df = df[same_name]
 
-    # Une même image utilisée par plusieurs articles différents est une image par défaut (logo...)
-    shared = df["image_url"].duplicated(keep=False)
-    for domain, count in df[shared]["domaine"].value_counts().items():
-        logger.warning("Association : %d articles de %s partagent la même image, écartés", count, domain)
-    df = df[~shared]
-    logger.info("Association : %d articles écartés (image partagée)", shared.sum())
+    # Une même image utilisée par plusieurs articles différents est souvent une image par défaut (logo...)
+    df["image_partagee"] = with_image & df["image_url"].duplicated(keep=False)
+    for domain, count in df.loc[df["image_partagee"], "domaine"].value_counts().items():
+        logger.warning("Association : %d articles de %s partagent la même image", count, domain)
+    logger.info("Association : %d articles avec une image partagée (signalés)", df["image_partagee"].sum())
     return df
 
 

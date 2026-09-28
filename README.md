@@ -33,12 +33,12 @@ Le script tourne sans intervention. Si une source ne répond pas, l'erreur est n
 ## Résultats
 
 - `data/extracted/articles_<date>.json` et `.csv` : un article par ligne, au même format pour toutes les sources
-- `data/images/` : l'image de chaque article, nommée avec l'id de l'article
-- `logs/extraction.log` : le déroulement de chaque exécution (nombre d'articles, articles écartés, erreurs)
+- `data/images/` : l'image de chaque article qui en a une, nommée avec l'id de l'article
+- `logs/extraction.log` : le déroulement de chaque exécution (nombre d'articles, articles sans image, erreurs)
 
 Chaque article contient : id, source, domaine, url, titre, texte, image_url, image_path, date_publication, langue, auteur, fiabilite_source, label.
 
-Les articles sans texte ou sans image sont écartés. Les images sont téléchargées pour vérifier que le lien fonctionne et que le fichier est bien une image.
+Les articles sans titre ou sans texte sont écartés, ceux sans image sont gardés. Les images sont téléchargées pour vérifier que le lien fonctionne et que le fichier est bien une image.
 
 ## Transformer les données
 
@@ -46,7 +46,7 @@ Les articles sans texte ou sans image sont écartés. Les images sont téléchar
 uv run python src/transform.py
 ```
 
-Le pipeline lit tous les fichiers de `data/extracted/`, puis nettoie les URL et les textes, convertit les types, supprime les doublons, vérifie les champs et les images (image valide, pas partagée entre plusieurs articles), ajoute des colonnes et exporte le résultat :
+Le pipeline lit tous les fichiers de `data/extracted/`, puis nettoie les URL et les textes, convertit les types, supprime les doublons, vérifie les champs et les images (image valide avec `a_image`, image partagée avec `image_partagee`), ajoute des colonnes et exporte le résultat :
 
 - `data/processed/articles.parquet` : le jeu de données final, avec les types conservés
 - `data/processed/articles.csv` : la même chose, lisible dans un tableur
