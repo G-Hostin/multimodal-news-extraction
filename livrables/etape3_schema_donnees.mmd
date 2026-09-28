@@ -4,7 +4,7 @@ title: Modèle conceptuel des données (CheckIt.AI)
 erDiagram
     CANAL_COLLECTE ||--o{ ARTICLE : collecte
     MEDIA ||--o{ ARTICLE : publie
-    ARTICLE ||--|| IMAGE : "est illustré par"
+    ARTICLE ||--o| IMAGE : "est illustré par"
 
     CANAL_COLLECTE {
         categorie source "code du canal : contexte"
@@ -27,6 +27,7 @@ erDiagram
         categorie langue "fr : filtre"
         texte auteur "inconnu si absent : contexte"
         categorie label "satire ou non_verifie : cible de classification"
+        booleen a_image "image valide ou non : filtre texte seul / multimodal"
         date date_extraction "UTC : traçabilité"
     }
     IMAGE {
@@ -35,4 +36,5 @@ erDiagram
         entier image_largeur "pixels : contrôle qualité"
         entier image_hauteur "pixels : contrôle qualité"
         categorie image_format "JPEG ou PNG : prétraitement"
+        booleen image_partagee "même image que d'autres articles : contrôle qualité"
     }
