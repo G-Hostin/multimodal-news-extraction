@@ -1,0 +1,38 @@
+---
+title: Modèle conceptuel des données (CheckIt.AI)
+---
+erDiagram
+    CANAL_COLLECTE ||--o{ ARTICLE : collecte
+    MEDIA ||--o{ ARTICLE : publie
+    ARTICLE ||--|| IMAGE : "est illustré par"
+
+    CANAL_COLLECTE {
+        categorie source "code du canal : contexte"
+        texte nom_source "nom lisible"
+        categorie type_source "api, rss ou scraping : contexte"
+        booleen est_fact_checking "variable explicative"
+    }
+    MEDIA {
+        texte domaine "site qui publie : contexte"
+        entier rang_fiabilite "rang NewsData, vide sinon : variable explicative"
+    }
+    ARTICLE {
+        texte id "hash de l'URL : traçabilité"
+        texte url "sans paramètres de suivi : traçabilité"
+        texte titre "entrée NLP"
+        texte texte "résumé ou contenu : entrée NLP"
+        entier nb_mots_titre "variable numérique"
+        entier nb_mots_texte "variable numérique"
+        date date_publication "UTC : contexte"
+        categorie langue "fr : filtre"
+        texte auteur "inconnu si absent : contexte"
+        categorie label "satire ou non_verifie : cible de classification"
+        date date_extraction "UTC : traçabilité"
+    }
+    IMAGE {
+        texte image_url "adresse d'origine : traçabilité"
+        texte image_path "fichier téléchargé : entrée vision"
+        entier image_largeur "pixels : contrôle qualité"
+        entier image_hauteur "pixels : contrôle qualité"
+        categorie image_format "JPEG ou PNG : prétraitement"
+    }
