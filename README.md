@@ -54,9 +54,47 @@ Le pipeline lit tous les fichiers de `data/extracted/`, puis nettoie les URL et 
 
 Le pipeline repart toujours de tous les fichiers extraits, donc deux lancements sur les mêmes données donnent le même résultat. Le schéma des données finales est dans `livrables/etape3_schema_donnees.mmd` (source Mermaid) et `livrables/etape3_schema_donnees.pdf`.
 
+## Orchestration avec Airflow
+
+Le DAG `etl_multimodal_news` (`dags/etl_multimodal_news.py`) enchaîne tout le flux une fois par jour :
+
+```
+extract_newsdata ─┐
+extract_rss ──────┼──> transform ──> load
+extract_legorafi ─┘
+```
+
+Les trois extractions tournent en parallèle. `transform` lance le pipeline de l'étape 3 et `load` charge le résultat dans la table `articles` d'une base PostgreSQL (ajout ou mise à jour selon l'id, donc pas de doublons d'un jour à l'autre). Chaque tâche est un `PythonOperator` qui appelle les fonctions de `src/`.
+
+Lancement (Docker Desktop nécessaire) :
+
+```bash
+docker compose build
+docker compose up airflow-init
+docker compose up -d
+```
+
+L'interface est sur http://localhost:8080 (identifiant `airflow`, mot de passe `airflow`).
+
+Le fichier `.env` doit contenir les variables de `.env.example`. La clé Fernet se génère avec :
+
+```bash
+python -c "import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"
+```
+
+### Base de données
+
+PostgreSQL, parce que les données transformées ont un schéma fixe et qu'une clé primaire sur l'id évite les doublons au chargement. Les images restent des fichiers dans `data/images/`, la base stocke leur chemin.
+
+La base tourne dans son propre conteneur (`checkit-db`), séparé de la base interne d'Airflow, et n'est accessible que depuis la machine locale (port 5433). Au premier démarrage, `sql/init-db.sh` crée la table et deux utilisateurs avec mot de passe : `etl_writer` (utilisé par le DAG, lecture et écriture de la table) et `analyst_reader` (lecture seule). Les mots de passe et la clé API sont dans le `.env`, et la clé Fernet fait chiffrer par Airflow les connexions et variables qu'il stocke.
+
 ## Organisation du code
 
 ```
+dags/
+└── etl_multimodal_news.py   # DAG Airflow
+sql/
+└── init-db.sh               # création de la table et des rôles PostgreSQL
 src/
 ├── config.py            # paramètres : sources, nombre d'articles, dossiers
 ├── utils.py             # logs, nettoyage, téléchargement des images, sauvegarde

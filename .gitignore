@@ -9,3 +9,7 @@ __pycache__/
 # Données et logs générés par les scripts
 data/
 logs/
+
+# Fichiers générés par Airflow
+config/
+plugins/
