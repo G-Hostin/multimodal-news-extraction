@@ -42,4 +42,8 @@ LANGUAGE = "fr"
 DATA_DIR = ROOT_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
 EXTRACTED_DIR = DATA_DIR / "extracted"
+PROCESSED_DIR = DATA_DIR / "processed"
+
+# --- Transformation ---
+IMAGE_MIN_WIDTH = 200  # pixels, en dessous l'image est trop petite pour être exploitée
 LOGS_DIR = ROOT_DIR / "logs"

@@ -40,6 +40,20 @@ Chaque article contient : id, source, domaine, url, titre, texte, image_url, ima
 
 Les articles sans texte ou sans image sont écartés. Les images sont téléchargées pour vérifier que le lien fonctionne et que le fichier est bien une image.
 
+## Transformer les données
+
+```bash
+uv run python src/transform.py
+```
+
+Le pipeline lit tous les fichiers de `data/extracted/`, puis nettoie les URL et les textes, convertit les types, supprime les doublons, vérifie les champs et les images (image valide, pas partagée entre plusieurs articles), ajoute des colonnes et exporte le résultat :
+
+- `data/processed/articles.parquet` : le jeu de données final, avec les types conservés
+- `data/processed/articles.csv` : la même chose, lisible dans un tableur
+- `logs/transformation.log` : le nombre d'articles modifiés ou écartés à chaque étape
+
+Le pipeline repart toujours de tous les fichiers extraits, donc deux lancements sur les mêmes données donnent le même résultat. Le schéma des données finales est dans `livrables/etape3_schema_donnees.mmd` (source Mermaid) et `livrables/etape3_schema_donnees.pdf`.
+
 ## Organisation du code
 
 ```
@@ -49,9 +63,11 @@ src/
 ├── extract_newsdata.py  # API NewsData.io
 ├── extract_rss.py       # flux RSS (feedparser)
 ├── extract_gorafi.py    # scraping du Gorafi
-└── main.py              # lance toutes les extractions
+├── main.py              # lance toutes les extractions
+└── transform.py         # pipeline de transformation (lecture, traitement, export)
 notebooks/
-└── exploration.ipynb    # tests des réponses de chaque source avant d'écrire les scripts
+├── exploration.ipynb        # tests des réponses de chaque source avant d'écrire les scripts
+└── diagnostic_donnees.ipynb # diagnostic des données extraites avant la transformation
 ```
 
 Les paramètres (nombre de pages NewsData, nombre d'articles du Gorafi, pause entre deux pages...) se modifient dans `src/config.py`.

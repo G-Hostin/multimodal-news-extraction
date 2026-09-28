@@ -23,14 +23,14 @@ IMAGE_EXTENSIONS = {
 }
 
 
-def setup_logging():
-    """Affiche les logs dans la console et les écrit dans logs/extraction.log."""
+def setup_logging(log_file="extraction.log"):
+    """Affiche les logs dans la console et les écrit dans le dossier logs/."""
     config.LOGS_DIR.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
         handlers=[
-            logging.FileHandler(config.LOGS_DIR / "extraction.log", encoding="utf-8"),
+            logging.FileHandler(config.LOGS_DIR / log_file, encoding="utf-8"),
             logging.StreamHandler(),
         ],
     )
