@@ -1,0 +1,11 @@
+# Environnement
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# Secrets
+.env
+
+# Données et logs générés par les scripts
+data/
+logs/
