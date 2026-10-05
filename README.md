@@ -46,6 +46,12 @@ Les articles sans titre ou sans texte sont écartés, ceux sans image sont gard�
 uv run python src/transform.py
 ```
 
+Les dossiers d'entrée et de sortie peuvent être changés au lancement (par défaut, ceux de `src/config.py`) :
+
+```bash
+uv run python src/transform.py --entree data/extracted --sortie data/processed
+```
+
 Le pipeline lit tous les fichiers de `data/extracted/`, puis nettoie les URL et les textes, convertit les types, supprime les doublons, vérifie les champs et les images (image valide avec `a_image`, image partagée avec `image_partagee`), ajoute des colonnes et exporte le résultat :
 
 - `data/processed/articles.parquet` : le jeu de données final, avec les types conservés

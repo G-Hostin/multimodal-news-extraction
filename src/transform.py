@@ -1,5 +1,6 @@
 """Pipeline de transformation : lecture des données extraites, traitement, export."""
 
+import argparse
 import json
 import logging
 import re
@@ -48,11 +49,11 @@ FINAL_COLUMNS = [
 
 # ---------- 1. Lecture ----------
 
-def lit_donnees():
+def lit_donnees(dossier_entree=config.EXTRACTED_DIR):
     """Charge tous les fichiers JSON produits par l'extraction dans un seul DataFrame."""
-    files = sorted(config.EXTRACTED_DIR.glob("articles_*.json"))
+    files = sorted(Path(dossier_entree).glob("articles_*.json"))
     if not files:
-        raise FileNotFoundError(f"Aucun fichier extrait dans {config.EXTRACTED_DIR}")
+        raise FileNotFoundError(f"Aucun fichier extrait dans {dossier_entree}")
 
     dataframes = []
     for file in files:
@@ -207,22 +208,23 @@ def ajoute_colonnes(df):
 
 # ---------- 3. Export ----------
 
-def exporte(df):
+def exporte(df, dossier_sortie=config.PROCESSED_DIR):
     """Écrit le jeu de données final en Parquet (types conservés) et en CSV (lecture humaine)."""
     df = df[FINAL_COLUMNS].sort_values(["date_publication", "id"], ascending=[False, True])
     df = df.reset_index(drop=True)
 
-    config.PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(config.PROCESSED_DIR / "articles.parquet", index=False)
-    df.to_csv(config.PROCESSED_DIR / "articles.csv", index=False, encoding="utf-8-sig")
-    logger.info("Export : %d articles dans %s", len(df), config.PROCESSED_DIR)
+    dossier_sortie = Path(dossier_sortie)
+    dossier_sortie.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(dossier_sortie / "articles.parquet", index=False)
+    df.to_csv(dossier_sortie / "articles.csv", index=False, encoding="utf-8-sig")
+    logger.info("Export : %d articles dans %s", len(df), dossier_sortie)
     return df
 
 
-def transforme():
+def transforme(dossier_entree=config.EXTRACTED_DIR, dossier_sortie=config.PROCESSED_DIR):
     """Enchaîne toutes les étapes : lecture, traitement, export."""
     logger.info("Début de la transformation")
-    df = lit_donnees()
+    df = lit_donnees(dossier_entree)
     df = nettoie_url(df)
     df = nettoie_textes(df)
     df = convertit_types(df)
@@ -234,14 +236,20 @@ def transforme():
     df = remplit_manquants(df)
     df = renomme_colonnes(df)
     df = ajoute_colonnes(df)
-    df = exporte(df)
+    df = exporte(df, dossier_sortie)
     logger.info("Fin de la transformation")
     return df
 
 
 def main():
+    # Les dossiers peuvent être changés au lancement, par défaut ce sont ceux de config.py
+    parser = argparse.ArgumentParser(description="Transforme les articles extraits en jeu de données final")
+    parser.add_argument("--entree", default=config.EXTRACTED_DIR, help="dossier des fichiers JSON extraits")
+    parser.add_argument("--sortie", default=config.PROCESSED_DIR, help="dossier du Parquet et du CSV")
+    args = parser.parse_args()
+
     setup_logging("transformation.log")
-    transforme()
+    transforme(args.entree, args.sortie)
 
 
 if __name__ == "__main__":
