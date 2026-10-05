@@ -5,6 +5,10 @@ address = "localhost"
 [browser]
 gatherUsageStats = false
 
+[logger]
+# Pas de message d'accueil ni de suggestions de Streamlit
+hideWelcomeMessage = true
+
 [client]
 # Cache le bouton "Deploy" et le menu développeur
 toolbarMode = "viewer"

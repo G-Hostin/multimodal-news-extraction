@@ -55,7 +55,12 @@ def resume_executions(metrics):
     executions["recuperes"] = extractions.groupby("run_id")["nb_entree"].sum()
     executions["gardes"] = extractions.groupby("run_id")["nb_sortie"].sum()
     executions["pct_valides"] = 100 * executions["gardes"] / executions["recuperes"]
-    return executions.sort_values("debut")
+    # Total en base après le chargement : la différence avec l'exécution précédente
+    # donne le nombre de nouveaux articles (les autres étaient déjà en base)
+    executions["total_base"] = metrics[metrics["tache"] == "load"].groupby("run_id")["nb_sortie"].max()
+    executions = executions.sort_values("debut")
+    executions["nouveaux"] = executions["total_base"].diff()
+    return executions
 
 
 executions = resume_executions(metrics)
@@ -76,6 +81,8 @@ st.markdown(
     "Cette page indique si tout s'est bien passé."
 )
 st.caption(f"Dernière exécution : {derniere_exec['debut']:%d/%m/%Y à %H:%M}")
+# Les requêtes sont gardées en mémoire 5 minutes : le bouton vide ce cache et relit la base
+st.button("Actualiser les données", icon=":material/refresh:", on_click=st.cache_data.clear)
 
 
 # ---------- 1. État du pipeline (dernière exécution) ----------
@@ -111,14 +118,17 @@ for alerte in alertes:
 if not problemes and not alertes:
     st.success("Tout va bien : la dernière exécution s'est déroulée normalement.", icon=":material/check_circle:")
 
-col1, col2, col3, col4 = st.columns(4)
+nouveaux = derniere_exec["nouveaux"]
+col1, col2, col3, col4, col5 = st.columns(5)
 col1.metric("Articles collectés", f"{derniere_exec['gardes']:.0f}", border=True,
             help="Articles utilisables récupérés lors de la dernière exécution")
-col2.metric("Articles utilisables", f"{derniere_exec['pct_valides']:.0f} %", border=True,
+col2.metric("Nouveaux articles", "–" if pd.isna(nouveaux) else f"{nouveaux:.0f}", border=True,
+            help="Articles qui n'étaient pas encore en base. Les autres avaient déjà été collectés avant")
+col3.metric("Articles utilisables", f"{derniere_exec['pct_valides']:.0f} %", border=True,
             help="Part des articles récupérés qui ont un titre et un texte")
-col3.metric("Durée", f"{derniere_exec['duree']:.0f} s", border=True,
+col4.metric("Durée", f"{derniere_exec['duree']:.0f} s", border=True,
             help="Temps total de la dernière exécution")
-col4.metric("Crédits NewsData aujourd'hui", f"{credits_jour:.0f} / {config.NEWSDATA_QUOTA_JOUR}", border=True,
+col5.metric("Crédits NewsData aujourd'hui", f"{credits_jour:.0f} / {config.NEWSDATA_QUOTA_JOUR}", border=True,
             help="Quota de l'offre gratuite, 5 crédits par exécution")
 
 
@@ -198,6 +208,8 @@ with onglet_detail:
         "Date": tableau["debut"].dt.strftime("%d/%m/%Y %H:%M"),
         "Articles récupérés": tableau["recuperes"],
         "Articles utilisables": tableau["gardes"],
+        # Pas de valeur pour la première exécution enregistrée (rien à comparer)
+        "Nouveaux en base": tableau["nouveaux"].map(lambda v: "–" if pd.isna(v) else f"{v:.0f}"),
         "Utilisables (%)": tableau["pct_valides"].round(0),
         "Durée (s)": tableau["duree"].round(0),
     })
