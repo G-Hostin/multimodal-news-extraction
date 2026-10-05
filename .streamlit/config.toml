@@ -1,0 +1,10 @@
+[server]
+# Le tableau de bord n'est accessible que depuis cette machine
+address = "localhost"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# Cache le bouton "Deploy" et le menu développeur
+toolbarMode = "viewer"

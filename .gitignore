@@ -13,3 +13,6 @@ logs/
 # Fichiers générés par Airflow
 config/
 plugins/
+
+# Secrets du tableau de bord Streamlit
+.streamlit/secrets.toml

@@ -88,11 +88,25 @@ PostgreSQL, parce que les données transformées ont un schéma fixe et qu'une c
 
 La base tourne dans son propre conteneur (`checkit-db`), séparé de la base interne d'Airflow, et n'est accessible que depuis la machine locale (port 5433). Au premier démarrage, `sql/init-db.sh` crée la table et deux utilisateurs avec mot de passe : `etl_writer` (utilisé par le DAG, lecture et écriture de la table) et `analyst_reader` (lecture seule). Les mots de passe et la clé API sont dans le `.env`, et la clé Fernet fait chiffrer par Airflow les connexions et variables qu'il stocke.
 
+## Tableau de bord et monitoring
+
+Chaque tâche du DAG enregistre ses chiffres (articles, durée, crédits NewsData) dans la table `pipeline_metrics`. La dernière tâche, `controle_qualite`, compare ces chiffres aux seuils d'alerte définis dans `src/config.py` et échoue en cas de problème critique.
+
+Le tableau de bord Streamlit affiche les KPI (qualité, rapidité, coût) en lisant la base avec l'utilisateur `analyst_reader` :
+
+```bash
+uv run streamlit run dashboard/app.py
+```
+
+Il faut d'abord copier `.streamlit/secrets.toml.example` en `.streamlit/secrets.toml` et y mettre le mot de passe `ANALYST_READER_PASSWORD` du `.env`. Le plan de monitoring est dans `livrables/etape5_plan_monitoring.pdf`.
+
 ## Organisation du code
 
 ```
 dags/
 └── etl_multimodal_news.py   # DAG Airflow
+dashboard/
+└── app.py                   # tableau de bord Streamlit des KPI
 sql/
 └── init-db.sh               # création de la table et des rôles PostgreSQL
 src/
