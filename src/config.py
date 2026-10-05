@@ -43,4 +43,12 @@ DATA_DIR = ROOT_DIR / "data"
 IMAGES_DIR = DATA_DIR / "images"
 EXTRACTED_DIR = DATA_DIR / "extracted"
 PROCESSED_DIR = DATA_DIR / "processed"
+
+# --- Seuils d'alerte (utilisés par la tâche controle_qualite et le tableau de bord) ---
+SEUIL_ARTICLES_VALIDES = 60     # % minimum d'articles gardés pour une source
+SEUIL_ARTICLES_AVEC_IMAGE = 80  # % minimum d'articles avec une image valide
+SEUIL_DUREE_EXECUTION = 300     # secondes maximum pour une exécution complète du DAG
+SEUIL_CREDITS_JOUR = 150        # crédits NewsData maximum par jour
+SEUIL_FRAICHEUR_HEURES = 26     # heures maximum depuis la dernière exécution (le DAG tourne chaque jour)
+NEWSDATA_QUOTA_JOUR = 200       # quota de l'offre gratuite
 LOGS_DIR = ROOT_DIR / "logs"

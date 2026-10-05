@@ -34,15 +34,32 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         date_extraction   TIMESTAMPTZ
     );
 
+    -- Une ligne par tâche et par exécution du DAG, pour le tableau de bord
+    CREATE TABLE pipeline_metrics (
+        id              SERIAL PRIMARY KEY,
+        run_id          TEXT NOT NULL,
+        tache           TEXT NOT NULL,
+        source          TEXT,
+        date_debut      TIMESTAMPTZ NOT NULL,
+        duree_secondes  REAL NOT NULL,
+        nb_entree       INTEGER,
+        nb_sortie       INTEGER,
+        nb_avec_image   INTEGER,
+        nb_images_partagees INTEGER,
+        credits_api     INTEGER
+    );
+
     -- Utilisé par le DAG : lire, ajouter et mettre à jour les articles
     CREATE ROLE etl_writer LOGIN PASSWORD '$ETL_WRITER_PASSWORD';
     GRANT CONNECT ON DATABASE $POSTGRES_DB TO etl_writer;
     GRANT USAGE ON SCHEMA public TO etl_writer;
     GRANT SELECT, INSERT, UPDATE ON articles TO etl_writer;
+    GRANT SELECT, INSERT ON pipeline_metrics TO etl_writer;
+    GRANT USAGE ON SEQUENCE pipeline_metrics_id_seq TO etl_writer;
 
     -- Utilisé pour l'analyse : lecture seule
     CREATE ROLE analyst_reader LOGIN PASSWORD '$ANALYST_READER_PASSWORD';
     GRANT CONNECT ON DATABASE $POSTGRES_DB TO analyst_reader;
     GRANT USAGE ON SCHEMA public TO analyst_reader;
-    GRANT SELECT ON articles TO analyst_reader;
+    GRANT SELECT ON articles, pipeline_metrics TO analyst_reader;
 EOSQL
